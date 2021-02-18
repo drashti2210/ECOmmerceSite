@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 const validator = require('validator')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const Product = require('./product')
 
 const userSchema = new mongoose.Schema({
     firstname: {
@@ -14,10 +15,15 @@ const userSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    address:{
-        type: String,
-        required: true,
-        trim: true
+    address: {
+        type: Object,
+        properties: {
+            street_address: { type: String, required: true },
+            city: { type: String, required: true },
+            pincode: { type: String, required: true },
+            state: { type: String, required: true },
+            country: { type: String, required: true }
+        }
     },
     email: {
         type: String,
@@ -43,20 +49,21 @@ const userSchema = new mongoose.Schema({
         }
     },
     contact: {
-        type: Number,
-        default: 0,
+        type: String,
+        default: ""
     },
     tokens: [{
         token: {
             type: String,
             required: true
         }
-    }],
-    avatar: {
-        type: Buffer
-    }
-}, {
-    timestamps: true
+    }]
+})
+
+userSchema.virtual('products', {
+    ref: 'Product',
+    localField: '_id',
+    foreignField: 'sellBy'
 })
 
 userSchema.methods.toJSON = function () {
@@ -65,15 +72,13 @@ userSchema.methods.toJSON = function () {
 
     delete userObject.password
     delete userObject.tokens
-    delete userObject.avatar
 
     return userObject
 }
 
 userSchema.methods.generateAuthToken = async function () {
     const user = this
-    const token = jwt.sign({ _id: user._id.toString() }, process.env.JWT_SECRET)
-
+    const token = jwt.sign({ _id: user._id.toString() }, 'thisisecommercesite')
     user.tokens = user.tokens.concat({ token })
     await user.save()
 
@@ -107,7 +112,11 @@ userSchema.pre('save', async function (next) {
     next()
 })
 
-
+userSchema.pre('deleteOne', async function (next) {
+    const user = this
+    await Product.deleteMany({ sellBy: user._id })
+    next()
+})
 
 const User = mongoose.model('User', userSchema)
 

@@ -1,6 +1,6 @@
 import { Application } from 'express';
 import { UserController } from '../controllers/user.controller';
-import { Middleware } from '../middlewares';
+import { Middleware } from '../middleware';
 import { userValidation } from '../validators'
 
 export class UserRoutes extends Middleware {
